@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,13 @@ import {
   Dimensions,
   ScrollView,
   Platform,
-  TouchableOpacity
+  TouchableOpacity,
+  NativeEventEmitter, NativeModules
 } from 'react-native';
 import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
 import { showEditor } from 'react-native-video-trim';
 import { launchImageLibrary } from 'react-native-image-picker';
+import ImagePicker from 'react-native-image-crop-picker';
 
 import {data} from './data';
 
@@ -22,6 +24,49 @@ const ITEM_HEIGHT = ITEM_WIDTH * 0.9;
 
 const Home = () => {
   const tabBarheight = useBottomTabBarHeight();
+
+  useEffect(() => {
+  const eventEmitter = new NativeEventEmitter(NativeModules.VideoTrim);
+  const subscription = eventEmitter.addListener('VideoTrim', (event) => {
+    switch (event.name) {
+      case 'onShow': {
+        // on Dialog show
+        console.log('onShowListener', event);
+        break;
+      }
+      case 'onHide': {
+        // on Dialog hide
+        console.log('onHide', event);
+        break;
+      }
+      case 'onStartTrimming': {
+        // Android only: on start trimming
+        console.log('onStartTrimming', event);
+        break;
+      }
+      case 'onFinishTrimming': {
+        // on trimming is done
+        console.log('onFinishTrimming', event);
+        break;
+      }
+      case 'onCancelTrimming': {
+        // when user clicks Cancel button
+        console.log('onCancelTrimming', event);
+        break;
+      }
+      case 'onError': {
+        // any error occured: invalid file, lack of permissions to write to photo/gallery, unexpected error...
+        console.log('onError', event);
+        break;
+      }
+    }
+  });
+
+  return () => {
+    subscription.remove();
+  };
+}, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.contentContainer}>
@@ -30,15 +75,26 @@ const Home = () => {
 
       <TouchableOpacity
         onPress={async () => {
-          const result = await launchImageLibrary({
-            mediaType: 'video',
-          });
-          console.log('result', result)
-          showEditor(result?.assets[0]?.uri , {
+          // const result = await launchImageLibrary({
+          //   mediaType: 'video',
+          // });
+          // console.log('result', result)
+          // showEditor(result?.assets[0]?.uri , {
+          //       maxDuration: 20,
+          //     })
+          //       .then((res) => console.log(res))
+          //       .catch((e) => console.log(e));
+
+
+          ImagePicker.openPicker({
+                      mediaType: "video",
+                    })
+                      .then(async (media) => {
+                        console.log(media)
+                         showEditor(media.path , {
                 maxDuration: 20,
               })
-                .then((res) => console.log(res))
-                .catch((e) => console.log(e));
+                      })
 
          
         }}
@@ -49,7 +105,7 @@ const Home = () => {
 
 
       {/* Scrollable Content */}
-      <View style={styles.scrollContainer}>
+      {/* <View style={styles.scrollContainer}>
         <ScrollView
           indicatorStyle="white"
           contentContainerStyle={[
@@ -69,7 +125,7 @@ const Home = () => {
             </View>
           ))}
         </ScrollView>
-      </View>
+      </View> */}
     </View>
   );
 };
